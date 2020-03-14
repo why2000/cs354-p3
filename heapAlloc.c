@@ -135,7 +135,7 @@ void* allocHeap(int size) {
     // arrange left off free spaces
     if (oriSpace > totalSize) {
         (nextFooter + 1)->size_status = 2 + oriSpace;
-        (nextPtr + oriSpace >> 2 - 1)->size_status = oriSpace - totalSize + 2;
+        (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize + 2;
     }
     return nextPtr+1;
 } 
