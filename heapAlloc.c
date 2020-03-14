@@ -108,7 +108,7 @@ void* allocHeap(int size) {
     // First time search
     if (nextPtr == NULL) nextPtr = heapStart;
     int headerSize = 4;
-    int padding = 8 - (headerSize + size) % 8;
+    int padding = (8 - (headerSize + size) % 8) % 8;
     int totalSize = headerSize + size + padding;
     // Search loop
     blockHeader* searchStart = nextPtr;
