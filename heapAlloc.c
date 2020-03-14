@@ -122,7 +122,7 @@ void* allocHeap(int size) {
             continue;
         }
         // here one step means 4 bytes, since sizeof(blockHeader) is 4
-        int step = nextPtr->size_status >> 2 // '1' case has been caught previously
+        int step = nextPtr->size_status >> 2; // '1' case has been caught previously
         if (step == 0) return NULL; // infact this should throw a certain exception
         nextPtr += step;
         if (nextPtr == searchStart) return NULL; // search ended, no empty space
