@@ -103,46 +103,130 @@ blockHeader *nextPtr;
  * Tips: Be careful with pointer arithmetic and scale factors.
  */
 void* allocHeap(int size) {     
-    // here should be size+4 > ..., but in case the init method is not what I think, I kept it
-    if(size <= 0 || size > allocsize){ 
+    if (size <= 0 || size > allocsize) {
         return NULL;
     }
-    // First time search
-    if (nextPtr == NULL) nextPtr = heapStart;
-    int headerSize = 4;
-    int padding = (8 - (headerSize + size) % 8) % 8;
-    int totalSize = headerSize + size + padding;
-    // Search loop
-    blockHeader* searchStart = nextPtr;
-    while ((nextPtr->size_status & 1) || (((nextPtr->size_status >> 2) << 2) < totalSize)) {
-        // End Mark triggled
-        if (nextPtr->size_status == 1) {
-            nextPtr = heapStart;
-            if (searchStart == heapStart) return NULL; // search ended, no empty space
+    if (curr == NULL) {
+        curr = heapStart;//point to the start
+    }
+
+    int totalSize = size + 4; //padding + header + payload
+    while (totalSize % 8 != 0) {
+        totalSize++;
+    }
+    //if the current is empty and big enough
+    if ((curr->size_status & 1) == 0 && (curr->size_status >= totalSize)) {
+        if (((curr->size_status - 2) - totalSize) >= 8) {//spliting
+            int current = curr->size_status;
+            blockHeader* temp = curr; // temp pointer to curr
+            //new header
+            //cant have two adjacent free blocks
+            temp->size_status = totalSize + 3;
+
+            //updating new header
+            blockHeader* new = (blockHeader*)((void*)temp + totalSize);
+            new->size_status = current - totalSize;
+            //updating new footer
+            blockHeader* newfooter = (blockHeader*)((void*)temp + current - 2 - 4);
+            newfooter->size_status = current - 2 - totalSize;
+            curr = temp; // current == temp
+            return curr + 1;
+        }
+        else {//do not splitting
+            curr->size_status = totalSize + 3;
+            return curr + 1;
+        }
+    }
+    //finding empty mem from the next block of curr
+    int length = curr->size_status;
+    while (length % 8 != 0) {
+        length--;
+    }
+    blockHeader* next = (blockHeader*)((void*)curr + length);
+    while ((next->size_status & 1) == 1 || next->size_status < totalSize) {
+        if (next == curr) {
+            return NULL;
+        }
+        if (next->size_status == 1) {
+            next = heapStart;
             continue;
         }
-        // here one step means 4 bytes, since sizeof(blockHeader) is 4
-        int step = nextPtr->size_status >> 2; // '1' case has been caught previously
-        if (step == 0) return NULL; // infact this should throw a certain exception
-        nextPtr += step;
-        if (nextPtr == searchStart) return NULL; // search ended, no empty space
-    } // Search ended, empty space found
-    int oriSpace = (nextPtr->size_status >> 2) << 2;
-    nextPtr->size_status = totalSize + (nextPtr->size_status & 2) + 1;
-    blockHeader* nextFooter = nextPtr + totalSize / 4 - 1;
-    nextFooter->size_status = totalSize;
-    // arrange left off free spaces and flags
-    if (oriSpace > totalSize) {
-        (nextFooter + 1)->size_status = 2 + oriSpace - totalSize; // header of the suc block
-        (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize; // footer of the suc block
+        int length2 = next->size_status;
+        while (length2 % 8 != 0) {
+            length2--;
+        }
+        next = (blockHeader*)((void*)next + length2);
     }
-    else {
-        (nextFooter + 1)->size_status += 2;
+    //*next is the appropriate block
+    curr = next;
+    if ((curr->size_status & 1) == 0 && (curr->size_status >= totalSize)) {
+        if (((curr->size_status - 2) - totalSize) >= 8) {//spliting
+            int current2 = curr->size_status;
+            blockHeader* temp = curr; // temp pointer to curr
+            //new header
+            temp->size_status = totalSize + 3;
+
+            //updating new header
+            blockHeader* new = (blockHeader*)((void*)temp + totalSize);
+            new->size_status = current2 - totalSize;
+            //updating new footer
+            blockHeader* newfooter = (blockHeader*)((void*)temp + current2 - 2 - 4);
+            newfooter->size_status = current2 - 2 - totalSize;
+            curr = temp; // current == temp
+            return curr + 1;
+        }
+        else {//do not splitting
+            curr->size_status = totalSize + 3;
+            return curr + 1;
+        }
     }
-    blockHeader* payload = nextPtr + 1;
-    nextPtr += totalSize/4;
-    if (nextPtr->size_status == 1) nextPtr = heapStart;
-    return payload;
+
+
+
+
+
+
+    return NULL;
+    // here should be size+4 > ..., but in case the init method is not what I think, I kept it
+    //if(size <= 0 || size > allocsize){ 
+    //    return NULL;
+    //}
+    //// First time search
+    //if (nextPtr == NULL) nextPtr = heapStart;
+    //int headerSize = 4;
+    //int padding = (8 - (headerSize + size) % 8) % 8;
+    //int totalSize = headerSize + size + padding;
+    //// Search loop
+    //blockHeader* searchStart = nextPtr;
+    //while ((nextPtr->size_status & 1) || (((nextPtr->size_status >> 2) << 2) < totalSize)) {
+    //    // End Mark triggled
+    //    if (nextPtr->size_status == 1) {
+    //        nextPtr = heapStart;
+    //        if (searchStart == heapStart) return NULL; // search ended, no empty space
+    //        continue;
+    //    }
+    //    // here one step means 4 bytes, since sizeof(blockHeader) is 4
+    //    int step = nextPtr->size_status >> 2; // '1' case has been caught previously
+    //    if (step == 0) return NULL; // infact this should throw a certain exception
+    //    nextPtr += step;
+    //    if (nextPtr == searchStart) return NULL; // search ended, no empty space
+    //} // Search ended, empty space found
+    //int oriSpace = (nextPtr->size_status >> 2) << 2;
+    //nextPtr->size_status = totalSize + (nextPtr->size_status & 2) + 1;
+    //blockHeader* nextFooter = nextPtr + totalSize / 4 - 1;
+    //nextFooter->size_status = totalSize;
+    //// arrange left off free spaces and flags
+    //if (oriSpace > totalSize) {
+    //    (nextFooter + 1)->size_status = 2 + oriSpace - totalSize; // header of the suc block
+    //    (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize; // footer of the suc block
+    //}
+    //else {
+    //    (nextFooter + 1)->size_status += 2;
+    //}
+    //blockHeader* payload = nextPtr + 1;
+    //nextPtr += totalSize/4;
+    //if (nextPtr->size_status == 1) nextPtr = heapStart;
+    //return payload;
 } 
  
 /* 
