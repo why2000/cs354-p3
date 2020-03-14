@@ -84,6 +84,7 @@ int allocsize;
 /*
  * Additional global variables may be added as needed below
  */
+// the place that is to be allocated next.
 blockHeader *nextPtr;
 
 
@@ -118,6 +119,7 @@ void* allocHeap(int size) {
         // End Mark triggled
         if (nextPtr->size_status == 1) {
             nextPtr = heapStart;
+            if (searchStart == heapStart) return NULL; // search ended, no empty space
             //prevPtr = NULL; // heapStart has no previous block
             continue;
         }
@@ -137,7 +139,10 @@ void* allocHeap(int size) {
         (nextFooter + 1)->size_status = 2 + oriSpace - totalSize;
         (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize;
     }
-    return nextPtr+1;
+    blockHeader* payload = nextPtr + 1;
+    nextPtr += totalSize;
+    if (nextPtr->size_status == 1) nextPtr = heapStart;
+    return payload;
 } 
  
 /* 
