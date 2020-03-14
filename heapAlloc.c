@@ -103,7 +103,8 @@ blockHeader *nextPtr;
  * Tips: Be careful with pointer arithmetic and scale factors.
  */
 void* allocHeap(int size) {     
-    if(size <= 0 || size > allocsize){
+    // here should be size+4 > ..., but in case the init method is not what I think, I kept it
+    if(size <= 0 || size > allocsize){ 
         return NULL;
     }
     // First time search
@@ -113,14 +114,11 @@ void* allocHeap(int size) {
     int totalSize = headerSize + size + padding;
     // Search loop
     blockHeader* searchStart = nextPtr;
-    //blockHeader* prevPtr;
     while ((nextPtr->size_status & 1) || (((nextPtr->size_status >> 2) << 2) < totalSize)) {
-        //prevPtr = nextPtr;
         // End Mark triggled
         if (nextPtr->size_status == 1) {
             nextPtr = heapStart;
             if (searchStart == heapStart) return NULL; // search ended, no empty space
-            //prevPtr = NULL; // heapStart has no previous block
             continue;
         }
         // here one step means 4 bytes, since sizeof(blockHeader) is 4
@@ -128,16 +126,15 @@ void* allocHeap(int size) {
         if (step == 0) return NULL; // infact this should throw a certain exception
         nextPtr += step;
         if (nextPtr == searchStart) return NULL; // search ended, no empty space
-    }
-    // Search ended, empty space found
+    } // Search ended, empty space found
     int oriSpace = (nextPtr->size_status >> 2) << 2;
     nextPtr->size_status = totalSize + 1;
     blockHeader* nextFooter = nextPtr + totalSize / 4 - 1;
     nextFooter->size_status = totalSize;
     // arrange left off free spaces
     if (oriSpace > totalSize) {
-        (nextFooter + 1)->size_status = 2 + oriSpace - totalSize;
-        (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize;
+        (nextFooter + 1)->size_status = 2 + oriSpace - totalSize; // header of the suc block
+        (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize; // footer of the suc block
     }
     blockHeader* payload = nextPtr + 1;
     nextPtr += totalSize/4;
@@ -158,9 +155,59 @@ void* allocHeap(int size) {
  * - USE IMMEDIATE COALESCING if one or both of the adjacent neighbors are free.
  * - Update header(s) and footer as needed.
  */                    
-int freeHeap(void *ptr) {    
-    //TODO: Your code goes in here.
+int freeHeap(void *ptr) { 
+    // pre-checks
+    if (ptr == NULL) return -1;
+    if ((int)ptr % 8) return -1;
+    if (ptr < (void*)heapStart || ptr >= (void*)heapStart + allocsize) return -1;
+    if (!(((blockHeader*)ptr - 1)->size_status & 1)) return -1;
+
+    // pointers and flags, sizes (in 4 bytes)
+    blockHeader* curPtr = ((blockHeader*)ptr - 1);
+    int curSize = curPtr->size_status >> 2;
+    blockHeader* curFooter = curPtr + curSize - 1;
+    blockHeader* sucPtr = curFooter + 1;
+    int sucSize = sucPtr->size_status >> 2;
+    blockHeader* sucFooter = sucPtr + sucSize - 1;
+    int sucFree = (sucPtr->size_status & 1)? 0: 1; // avoids !0
+    blockHeader* prevPtr;
+    blockHeader* prevFooter;
+    int prevSize;
+    int prevFree = (curPtr->size_status & 2)? 0: 1;
+
+    // cases:
+    if (prevFree) {
+        // need to set arguments of previous block
+        prevFooter = curPtr - 1;
+        prevSize = prevFooter->size_status >> 2;
+        prevPtr = prevFooter + 1 - prevSize;
+        if (sucFree) {
+            int totalBytes = (prevSize + curSize + sucSize) >> 2;
+            prevPtr->size_status = totalBytes + (prevPtr->size_status & 3);
+            sucFooter->size_status = totalBytes;
+            return 0;
+        }
+        else {
+            int totalBytes = (prevSize + curSize) >> 2;
+            prevPtr->size_status = totalBytes + (prevPtr->size_status & 3);
+            curFooter->size_status = totalBytes;
+        }
+    }
+    else {
+        // need to clear the last bit of header
+        if (sucFree) {
+            int totalBytes = (curSize + sucSize) >> 2;
+            curPtr->size_status = totalBytes + (curPtr->size_status & 2);
+            sucFooter->size_status = totalBytes;
+        }
+        else {
+            int totalBytes = curSize >> 2;
+            curPtr->size_status = totalBytes + (curPtr->size_status & 2);
+            curFooter->size_status = totalBytes;
+        }
+    }
     return -1;
+    
 } 
  
 /*
