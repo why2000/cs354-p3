@@ -128,13 +128,16 @@ void* allocHeap(int size) {
         if (nextPtr == searchStart) return NULL; // search ended, no empty space
     } // Search ended, empty space found
     int oriSpace = (nextPtr->size_status >> 2) << 2;
-    nextPtr->size_status = totalSize + 1;
+    nextPtr->size_status = totalSize + (nextPtr->size_status & 2) + 1;
     blockHeader* nextFooter = nextPtr + totalSize / 4 - 1;
     nextFooter->size_status = totalSize;
-    // arrange left off free spaces
+    // arrange left off free spaces and flags
     if (oriSpace > totalSize) {
         (nextFooter + 1)->size_status = 2 + oriSpace - totalSize; // header of the suc block
         (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize; // footer of the suc block
+    }
+    else {
+        (nextFooter + 1)->size_status += 2;
     }
     blockHeader* payload = nextPtr + 1;
     nextPtr += totalSize/4;
