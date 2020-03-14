@@ -113,7 +113,7 @@ void* allocHeap(int size) {
     // Search loop
     blockHeader* searchStart = nextPtr;
     //blockHeader* prevPtr;
-    while ((nextPtr->size_status & 1) && (((nextPtr->size_status >> 2) << 2) < totalSize)) {
+    while ((nextPtr->size_status & 1) || (((nextPtr->size_status >> 2) << 2) < totalSize)) {
         //prevPtr = nextPtr;
         // End Mark triggled
         if (nextPtr->size_status == 1) {
@@ -134,8 +134,8 @@ void* allocHeap(int size) {
     nextFooter->size_status = totalSize;
     // arrange left off free spaces
     if (oriSpace > totalSize) {
-        (nextFooter + 1)->size_status = 2 + oriSpace;
-        (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize + 2;
+        (nextFooter + 1)->size_status = 2 + oriSpace - totalSize;
+        (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize;
     }
     return nextPtr+1;
 } 
