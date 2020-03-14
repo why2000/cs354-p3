@@ -191,6 +191,7 @@ int freeHeap(void *ptr) {
             int totalBytes = (prevSize + curSize) >> 2;
             prevPtr->size_status = totalBytes + (prevPtr->size_status & 3);
             curFooter->size_status = totalBytes;
+            return 0;
         }
     }
     else {
@@ -199,11 +200,13 @@ int freeHeap(void *ptr) {
             int totalBytes = (curSize + sucSize) >> 2;
             curPtr->size_status = totalBytes + (curPtr->size_status & 2);
             sucFooter->size_status = totalBytes;
+            return 0;
         }
         else {
             int totalBytes = curSize >> 2;
             curPtr->size_status = totalBytes + (curPtr->size_status & 2);
             curFooter->size_status = totalBytes;
+            return 0;
         }
     }
     return -1;
