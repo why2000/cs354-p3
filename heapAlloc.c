@@ -6,7 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Main File:        heapAlloc.c
 // This File:        heapAlloc.c
-// Other Files:      heapAlloc.h
+// Other Files:      
 // Semester:         CS 354 Spring 2020
 //
 // Author:           Hanyuan Wu
@@ -194,7 +194,7 @@ int freeHeap(void *ptr) {
             int totalBytes = (prevSize + curSize) << 2;
             prevPtr->size_status = totalBytes + (prevPtr->size_status & 3);
             curFooter->size_status = totalBytes;
-            sucPtr->size_status -= 2;
+            if (sucPtr->size_status != 1) sucPtr->size_status -= 2;
             return 0;
         }
     }
@@ -210,7 +210,7 @@ int freeHeap(void *ptr) {
             int totalBytes = curSize << 2;
             curPtr->size_status = totalBytes + (curPtr->size_status & 2);
             curFooter->size_status = totalBytes;
-            sucPtr->size_status -= 2;
+            if(sucPtr->size_status != 1) sucPtr->size_status -= 2;
             return 0;
         }
     }
