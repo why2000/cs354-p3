@@ -4,6 +4,26 @@
 // Posting or sharing this file is prohibited, including any changes/additions.
 //
 ///////////////////////////////////////////////////////////////////////////////
+// Main File:        heapAlloc.c
+// This File:        heapAlloc.c
+// Other Files:      heapAlloc.h
+// Semester:         CS 354 Spring 2020
+//
+// Author:           Hanyuan Wu
+// Email:            hwu384@wisc.edu
+// CS Login:         hanyuan
+//
+/////////////////////////// OTHER SOURCES OF HELP /////////////////////////////
+//                   fully acknowledge and credit all sources of help,
+//                   other than Instructors and TAs.
+//
+// Persons:          Identify persons by name, relationship to you, and email.
+//                   Describe in detail the the ideas and help they provided.
+//
+// Online sources:   avoid web searches to solve your problems, but if you do
+//                   search, be sure to include Web URLs and description of
+//                   of any information you find.
+///////////////////////////////////////////////////////////////////////////////
  
 #include <unistd.h>
 #include <sys/types.h>
@@ -64,6 +84,8 @@ int allocsize;
 /*
  * Additional global variables may be added as needed below
  */
+blockHeader *nextPtr;
+
 
  
 /* 
@@ -80,8 +102,42 @@ int allocsize;
  * Tips: Be careful with pointer arithmetic and scale factors.
  */
 void* allocHeap(int size) {     
-    //TODO: Your code goes in here.
-    return NULL;
+    if(size <= 0 || size > allocsize){
+        return NULL;
+    }
+    // First time search
+    if (nextPtr == NULL) nextPtr = heapStart;
+    int headerSize = 4;
+    int padding = headerSize + size + 8 - (headerSize + size) % 8;
+    int totalSize = headerSize + size + padding;
+    // Search loop
+    blockHeader* searchStart = nextPtr;
+    //blockHeader* prevPtr;
+    while ((nextPtr->size_status & 1) && (((nextPtr->size_status >> 2) << 2) < totalSize)) {
+        //prevPtr = nextPtr;
+        // End Mark triggled
+        if (nextPtr->size_status == 1) {
+            nextPtr = heapStart;
+            //prevPtr = NULL; // heapStart has no previous block
+            continue;
+        }
+        // here one step means 4 bytes, since sizeof(blockHeader) is 4
+        int step = nextPtr->size_status >> 2 // '1' case has been caught previously
+        if (step == 0) return NULL; // infact this should throw a certain exception
+        nextPtr += step;
+        if (nextPtr == searchStart) return NULL; // search ended, no empty space
+    }
+    // Search ended, empty space found
+    int oriSpace = (nextPtr->size_status >> 2) << 2;
+    nextPtr->size_status = totalSize + 1;
+    blockHeader* nextFooter = nextPtr + totalSize / 4 - 1;
+    nextFooter->size_status = totalSize;
+    // arrange left off free spaces
+    if (oriSpace > totalSize) {
+        (nextFooter + 1)->size_status = 2 + oriSpace;
+        (nextPtr + oriSpace >> 2 - 1)->size_status = oriSpace - totalSize + 2;
+    }
+    return nextPtr+1;
 } 
  
 /* 
