@@ -185,13 +185,13 @@ int freeHeap(void *ptr) {
         prevSize = prevFooter->size_status >> 2;
         prevPtr = prevFooter + 1 - prevSize;
         if (sucFree) {
-            int totalBytes = (prevSize + curSize + sucSize) >> 2;
+            int totalBytes = (prevSize + curSize + sucSize) << 2;
             prevPtr->size_status = totalBytes + (prevPtr->size_status & 3);
             sucFooter->size_status = totalBytes;
             return 0;
         }
         else {
-            int totalBytes = (prevSize + curSize) >> 2;
+            int totalBytes = (prevSize + curSize) << 2;
             prevPtr->size_status = totalBytes + (prevPtr->size_status & 3);
             curFooter->size_status = totalBytes;
             return 0;
@@ -200,13 +200,13 @@ int freeHeap(void *ptr) {
     else {
         // need to clear the last bit of header
         if (sucFree) {
-            int totalBytes = (curSize + sucSize) >> 2;
+            int totalBytes = (curSize + sucSize) << 2;
             curPtr->size_status = totalBytes + (curPtr->size_status & 2);
             sucFooter->size_status = totalBytes;
             return 0;
         }
         else {
-            int totalBytes = curSize >> 2;
+            int totalBytes = curSize << 2;
             curPtr->size_status = totalBytes + (curPtr->size_status & 2);
             curFooter->size_status = totalBytes;
             return 0;
