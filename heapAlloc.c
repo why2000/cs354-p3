@@ -140,7 +140,7 @@ void* allocHeap(int size) {
         (nextPtr + (oriSpace>>2) - 1)->size_status = oriSpace - totalSize;
     }
     blockHeader* payload = nextPtr + 1;
-    nextPtr += totalSize;
+    nextPtr += totalSize/4;
     if (nextPtr->size_status == 1) nextPtr = heapStart;
     return payload;
 } 
